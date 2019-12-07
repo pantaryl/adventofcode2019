@@ -6,7 +6,9 @@ with open("../input/day5.txt", 'r') as inputFile:
 runner = Intcode(verbose=False)
 
 # Part1
-print("Part1:", runner.runProgram(list(data), inputStream=[1]))
+runner.initProgram(list(data), inputStream=[1])
+print("Part1:", runner.runProgram())
 
 # Part2
-print("Part2:", runner.runProgram(list(data), inputStream=[5]))
+runner.initProgram(list(data), inputStream=[5])
+print("Part2:", runner.runProgram(list(data)))

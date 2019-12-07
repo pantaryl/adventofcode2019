@@ -9,8 +9,9 @@ class Intcode():
         self.verbose     = verbose
         self.program     = []
         self.inputStream = []
-        self.ip      = 0
-        self.eop     = False
+        self.ip          = 0
+        self.eop         = False
+        self.needsInput  = False
         self.retVal = None
         self.opcodes = {
             1 : self.opcode1,
@@ -24,14 +25,20 @@ class Intcode():
             99: self.opcode99
         }
 
-    def runProgram(self, program: list, inputStream: list = []):
+    def initProgram(self, program: list, inputStream: list = []):
         self.program     = list(program)
         self.ip          = 0
         self.eop         = False
-        self.inputStream = inputStream
+        self.needsInput  = False
         self.retVal      = None
+        self.inputStream = inputStream
 
-        while self.eop is False:
+    def runProgram(self, inputStream: list = None):
+        if inputStream is not None:
+            self.inputStream.extend(inputStream)
+            self.needsInput = False
+
+        while self.eop is False and self.needsInput is False:
             if self.verbose: print(f"IP: {self.ip} - ", end='')
             instruction = "00000000000000" + str(self.program[self.ip])
             opcode      = int(instruction[-2:])
@@ -67,13 +74,16 @@ class Intcode():
         self.ip += 4
 
     def opcode3(self, modes: list):
-        dest  = self.program[self.ip + 1]
-        assert(len(self.inputStream) > 0)
-        value = int(self.inputStream.pop(0))
-        if self.verbose:
-            print(f"program[{dest}] = {value}")
-        self.program[dest] = value
-        self.ip += 2
+        if len(self.inputStream) == 0:
+            self.needsInput = True
+        else:
+            dest  = self.program[self.ip + 1]
+            assert(len(self.inputStream) > 0)
+            value = int(self.inputStream.pop(0))
+            if self.verbose:
+                print(f"program[{dest}] = {value}")
+            self.program[dest] = value
+            self.ip += 2
 
     def opcode4(self, modes: list):
         src0 = self.getOperand(1, modes)
