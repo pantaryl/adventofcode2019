@@ -23,8 +23,8 @@ print("Part1: ", answer)
 
 # Part 2:
 print("Part2:")
-finalImage = list(layers[0])
-for layer in layers[1:]:
+finalImage = ['2'] * numPixelsPerLayer
+for layer in layers:
     for i in range(len(layer)):
         if finalImage[i] == '2':
             finalImage[i] = layer[i]
