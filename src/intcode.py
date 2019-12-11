@@ -14,6 +14,8 @@ class Intcode():
         self.relBase     = 0
         self.eop         = False
         self.needsInput  = False
+        self.readOutput  = False
+        self.stallOnOutput = False
         self.retVal = None
         self.opcodes = {
             1 : (self.opcode1, 3),
@@ -32,21 +34,24 @@ class Intcode():
         if self.verbose and numOperands > 0:
             print(",".join([str(x) for x in self.program[self.ip+1:self.ip+1+numOperands]]))
 
-    def initProgram(self, program: list, inputStream: list = []):
-        self.program     = list(program)
+    def initProgram(self, program: list, inputStream: list = [], stallOnOutput=False):
+        self.program     = list(program) + [0] * 10000
         self.ip          = 0
         self.relBase     = 0
         self.eop         = False
         self.needsInput  = False
+        self.readOutput  = False
+        self.stallOnOutput = stallOnOutput
         self.retVal      = None
         self.inputStream = inputStream
 
     def runProgram(self, inputStream: list = None):
+        self.readOutput = False
         if inputStream is not None:
             self.inputStream.extend(inputStream)
             self.needsInput = False
 
-        while self.eop is False and self.needsInput is False:
+        while self.eop is False and self.needsInput is False and (self.stallOnOutput is False or self.readOutput is False):
             instruction = "00000000000000" + str(self.program[self.ip])
             opcode      = int(instruction[-2:])
             assert(opcode in self.opcodes)
@@ -109,8 +114,9 @@ class Intcode():
         src0 = self.getOperand(1, modes)
         if self.verbose:
             print(f"Output: {src0}")
-        self.retVal = src0
-        self.ip += 2
+        self.retVal     = src0
+        self.readOutput = True
+        self.ip        += 2
 
     def opcode5(self, modes: list):
         src0    = self.getOperand(1, modes)
