@@ -4,8 +4,8 @@ with open("../input/day13.txt", 'r') as inputFile:
     splitData = inputFile.read().split(",")
     data = [int(x) for x in splitData]
 
-def getNumBlocks(tiles: dict):
-    return sum([1 if id == 2 else 0 for _, id in tiles.items()])
+def getNumBlocks(tiles: dict, blockType: int):
+    return sum([1 if id == blockType else 0 for _, id in tiles.items()])
 
 # Part 1
 runner = Intcode(verbose=False)
@@ -24,7 +24,7 @@ while runner.eop is False:
     runner.runProgram()
 
     tiles[(x, y)] = id
-print("Part1:", getNumBlocks(tiles))
+print("Part1:", getNumBlocks(tiles, 2))
 
 # Part 2
 def calcManhattanDist(loc: tuple, other: tuple):
@@ -32,12 +32,11 @@ def calcManhattanDist(loc: tuple, other: tuple):
 
 def getClosestBallCoord(tiles: dict, paddle: tuple):
     ball = None
+    assert(getNumBlocks(tiles, 3) == 1)
     for coord, id in tiles.items():
         if id == 4:
-            if ball is None:
-                ball = coord
-            elif calcManhattanDist(coord, paddle) < calcManhattanDist(ball, paddle):
-                ball = coord
+            ball = coord
+            break
     return ball
 
 def getPaddle(tiles: dict):
