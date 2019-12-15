@@ -208,8 +208,8 @@ while queue:
                 if nextIter is None or nextIter == node:
                     if nextIter is not None:
                         minutes += 1
-                    print(nextIter)
-                    printGrid(minutes, grid)
+                    #print(nextIter)
+                    #printGrid(minutes, grid)
                     nextIter = neighbor
                 grid[neighbor] = GridType.OXYGEN.value
                 queue.append(neighbor)
