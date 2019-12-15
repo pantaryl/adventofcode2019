@@ -5,7 +5,7 @@ class ParameterMode(Enum):
     Immediate = 1
     Relative  = 2
 
-class Intcode():
+class Intcode:
     def __init__(self, verbose=False):
         self.verbose     = verbose
         self.program     = []
