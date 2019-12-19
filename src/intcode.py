@@ -18,24 +18,24 @@ class Intcode:
         self.stallOnOutput = False
         self.retVal = None
         self.opcodes = {
-            1 : (self.opcode1, 3),
-            2 : (self.opcode2, 3),
-            3 : (self.opcode3, 1),
-            4 : (self.opcode4, 1),
-            5 : (self.opcode5, 2),
-            6 : (self.opcode6, 2),
-            7 : (self.opcode7, 3),
-            8 : (self.opcode8, 3),
-            9 : (self.opcode9, 1),
-            99: (self.opcode99, 0),
+            1 : (self.opcode1, 3, "add"),
+            2 : (self.opcode2, 3, "mul"),
+            3 : (self.opcode3, 1, "inp"),
+            4 : (self.opcode4, 1, "out"),
+            5 : (self.opcode5, 2, "jmp1"),
+            6 : (self.opcode6, 2, "jmp0"),
+            7 : (self.opcode7, 3, "lt"),
+            8 : (self.opcode8, 3, "eq"),
+            9 : (self.opcode9, 1, "rel"),
+            99: (self.opcode99, 0, "eop"),
         }
 
     def printOperandValues(self, numOperands:int):
-        if self.verbose and numOperands > 0:
-            print(",".join([str(x) for x in self.program[self.ip+1:self.ip+1+numOperands]]))
+        if numOperands > 0:
+            return ",".join([str(x) for x in self.program[self.ip+1:self.ip+1+numOperands]])
 
     def initProgram(self, program: list, inputStream: list = [], stallOnOutput=False):
-        self.program     = list(program) + [0] * 10000
+        self.program     = list(program) + [0] * 5000
         self.ip          = 0
         self.relBase     = 0
         self.eop         = False
@@ -56,7 +56,7 @@ class Intcode:
             opcode      = int(instruction[-2:])
             assert(opcode in self.opcodes)
             opcode = self.opcodes[opcode]
-            if self.verbose: print(f"IP: {self.ip} - {instruction} - Operands({self.printOperandValues(opcode[1])}) - ")
+            if self.verbose: print(f"IP: {self.ip} - {instruction}({opcode[2]}) - Operands({self.printOperandValues(opcode[1])}) - ")
             opcode[0]([int(x) for x in instruction[:-2]])
 
         return self.retVal
@@ -66,26 +66,30 @@ class Intcode:
         mode  = ParameterMode(modes[-operand])
         if isDest:
             if mode == ParameterMode.Position:
+                assert(value is not None and value >= 0)
+                if self.verbose: print(f"    (Operand {operand}, Mode {mode}) = DST({value})")
                 return value
             elif mode == ParameterMode.Relative:
+                assert((self.relBase + value) is not None and (self.relBase + value) >= 0)
+                if self.verbose: print(f"    (Operand {operand}, Mode {mode}, RelBase {self.relBase}, Value {value}) = DST({self.relBase + value})")
                 return self.relBase + value
         else:
             if mode == ParameterMode.Position:
-                if self.verbose: print(f"(Operand {operand}, Mode {mode}) = {self.program[value]}")
+                if self.verbose: print(f"    (Operand {operand}, Mode {mode}) = {self.program[value]}")
+                assert(value >= 0)
                 return self.program[value]
             elif mode == ParameterMode.Immediate:
-                if self.verbose: print(f"(Operand {operand}, Mode {mode}) = {value}")
+                if self.verbose: print(f"    (Operand {operand}, Mode {mode}) = {value}")
                 return value
             elif mode == ParameterMode.Relative:
-                if self.verbose: print(f"(Operand {operand}, Mode {mode}, RelBase {self.relBase}, Value {value}) = {self.program[self.relBase + value]}")
+                if self.verbose: print(f"    (Operand {operand}, Mode {mode}, RelBase {self.relBase}, Value {value}) = {self.program[self.relBase + value]}")
+                assert((self.relBase + value) >= 0)
                 return self.program[self.relBase + value]
 
     def opcode1(self, modes: list):
         src0 = self.getOperand(1, modes)
         src1 = self.getOperand(2, modes)
         dest = self.getOperand(3, modes, isDest=True)
-        if self.verbose:
-            print(f"program[{dest}] = {src0}({self.program[self.ip + 1]}) + {src1}({self.program[self.ip + 2]})")
         self.program[dest] = src0 + src1
         self.ip += 4
 
@@ -93,8 +97,6 @@ class Intcode:
         src0 = self.getOperand(1, modes)
         src1 = self.getOperand(2, modes)
         dest = self.getOperand(3, modes, isDest=True)
-        if self.verbose:
-            print(f"program[{dest}] = {src0}({self.program[self.ip + 1]}) * {src1}({self.program[self.ip + 2]})")
         self.program[dest] = src0 * src1
         self.ip += 4
 
@@ -105,8 +107,6 @@ class Intcode:
             dest  = self.getOperand(1, modes, isDest=True)
             assert(len(self.inputStream) > 0)
             value = int(self.inputStream.pop(0))
-            if self.verbose:
-                print(f"program[{dest}] = {value}")
             self.program[dest] = value
             self.ip += 2
 
@@ -121,8 +121,6 @@ class Intcode:
     def opcode5(self, modes: list):
         src0    = self.getOperand(1, modes)
         jumpLoc = self.getOperand(2, modes)
-        if self.verbose:
-            print(f"jump-if-true - src0({src0}), destIp({jumpLoc})")
         if src0 != 0:
             self.ip = jumpLoc
         else:
@@ -131,8 +129,6 @@ class Intcode:
     def opcode6(self, modes: list):
         src0    = self.getOperand(1, modes)
         jumpLoc = self.getOperand(2, modes)
-        if self.verbose:
-            print(f"jump-if-false - src0({src0}), destIp({jumpLoc})")
         if src0 == 0:
             self.ip = jumpLoc
         else:
@@ -142,8 +138,6 @@ class Intcode:
         src0    = self.getOperand(1, modes)
         src1    = self.getOperand(2, modes)
         dest    = self.getOperand(3, modes, isDest=True)
-        if self.verbose:
-            print(f"less-than - program[{dest}] = 1 if {src0}({self.program[self.ip + 1]}) < {src1}({self.program[self.ip + 2]}) else 0")
         self.program[dest] = 1 if src0 < src1 else 0
         self.ip += 4
 
@@ -151,15 +145,11 @@ class Intcode:
         src0    = self.getOperand(1, modes)
         src1    = self.getOperand(2, modes)
         dest    = self.getOperand(3, modes, isDest=True)
-        if self.verbose:
-            print(f"equals - program[{dest}] = 1 if {src0}({self.program[self.ip + 1]}) == {src1}({self.program[self.ip + 2]}) else 0")
         self.program[dest] = 1 if src0 == src1 else 0
         self.ip += 4
 
     def opcode9(self, modes:list):
         src0 = self.getOperand(1, modes)
-        if self.verbose:
-            print(f"set-rel-base - relBase = {self.relBase} + {src0}")
         self.relBase += src0
         self.ip += 2
 
