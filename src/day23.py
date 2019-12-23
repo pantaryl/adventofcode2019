@@ -64,7 +64,7 @@ def runNat():
 
         allEmpty = all([True if len(computers[id]['input']) == 0 else False for id in range(NUM_COMPUTERS)])
         if allEmpty:
-            print("NAT FOUND EMPTY!", computers[255]['input'], lastY)
+            if verbose: print("NAT FOUND EMPTY!", computers[255]['input'], lastY)
             computers[0]['input'] = list(computers[255]['input'])
             assert(len(computers[0]['input']) == 2)
             yVal = computers[0]['input'][1]
